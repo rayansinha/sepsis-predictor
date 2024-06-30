@@ -5,9 +5,12 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(
 from fastapi import FastAPI, Request, UploadFile, File
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, JSONResponse
+import pandas as pd
 from typing import List
 from fastapi.templating import Jinja2Templates
 from src.utils import load_pickle
+from src.module import Inputs
+from src.utils import make_prediction,output_batch, return_columns
 
 
 # Create an instance of FastAPI
@@ -55,5 +58,34 @@ async def model_info():
             }
     return model_information # return model information
 
+# prediction endpoint
+async def predict(plasma_glucose: float, blood_work_result_1: float, 
+                  blood_pressure: float, blood_work_result_2: float, 
+                  blood_work_result_3: float, body_mass_index: float, 
+                  blood_work_result_4: float, age: int, insurance: bool):
+    
+    # Create a dataframe from inputs 
+    data = pd.DataFrame([[plasma_glucose,blood_work_result_1,blood_pressure,
+                           blood_work_result_2,blood_work_result_3,body_mass_index, 
+                           blood_work_result_4, age,insurance]], columns=return_columns())
+
+    # data_copy = data.copy() # Create a copy of the dataframe
+    labels, prob = make_prediction(data, transformer, model) # Get the labels  
+    response = output_batch(data, labels) # output results
+    return response
+
+
+# Batch prediction endpoint
+@app.post('/predict-batch')
+async def predict_batch(inputs: Inputs):
+    # Create a dataframe from inputs
+    data = pd.DataFrame(inputs.return_dict_inputs())
+    labels, probs = make_prediction(data, transformer, model) # Get the labels
+    response = output_batch(data, labels) # output results
+    return response
+
+# Run the FastAPI application
+if __name__ == '__main__':
+    uvicorn.run('app:app', reload=True)
 
 

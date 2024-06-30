@@ -13,3 +13,10 @@ class Input(BaseModel):
     age: int 
     insurance: bool
 
+class Inputs(BaseModel):
+    all: List[Input]
+
+    def return_dict_inputs(
+            cls,
+    ):
+        return [ input.dict() for input in cls.all]
